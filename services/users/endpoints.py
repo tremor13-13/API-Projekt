@@ -11,3 +11,4 @@ class Endpoints:
 
     create_user = f"{STAGE}/users"
     loggin_user = f"{STAGE}/users/login"
+    get_user = f"{STAGE}/users/{{user_uuid}}"
