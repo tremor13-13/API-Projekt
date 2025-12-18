@@ -1,0 +1,31 @@
+# Виртуальные окружения
+venv/
+.venv/
+env/
+ENV/
+
+# Кэш Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Настройки IDE (PyCharm)
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Файлы с данными (например, базы данных)
+*.sqlite3
+*.db
+
+# Файлы с паролями и ключами (НИКОГДА не коммитьте их!)
+secrets.py
+config.py
+.env
+*.key
+
+# Логи и временные файлы
+logs/
+*.log
+.pytest_cache/
