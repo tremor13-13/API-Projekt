@@ -18,7 +18,7 @@ class Helper:
         result = json.dumps(response, indent=4)
         allure.attach(
             body=result,
-            name="API Response",
+            name=f"Status: {response.get('status_code', 'N/A')}",
             attachment_type=allure.attachment_type.JSON
         )
     def validate_response(self,
