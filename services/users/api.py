@@ -1,3 +1,7 @@
+
+import json
+from datetime import datetime
+
 import allure
 import requests
 from services.users.payloads import Payload
@@ -8,6 +12,7 @@ from services.users.models.model_user import UserResponse
 
 
 class UsersAPI(Helper):
+    """Инициализация методов для дальнейшего использования """
     def __init__(self):
         self.payloads = Payload()
         self.headers = Headers()
@@ -70,9 +75,9 @@ class UsersAPI(Helper):
         return self.validate_response(response, UserResponse)
 
     @allure.step("get user by UUID")
-    def get_user_by_uuid(self, user_uuid: str = None) -> UserResponse:  # 1. Опечатка в названии: ger → get
+    def get_user_by_uuid(self, user_uuid: str = None) -> UserResponse:
         """
-        Получение данных пользователя по UUID
+        Получение данных пользователя по "UUID"
         :param user_uuid: UUID пользователя, если значение пустое то берем из сохраненного
         :return: UserResponse объект
         """
@@ -88,11 +93,90 @@ class UsersAPI(Helper):
         # 3. Отправляем GET запрос
         response = requests.get(
             url=url,
-            headers=self.headers.basic  # 3. "headers", не "heders"
+            headers=self.headers.basic
         )
         # 4. Валидируем ответ
         validated_data = self.validate_response(response, UserResponse)
         return validated_data
+
+    @allure.step("delete user by UUID")
+    def delete_user_by_uuid(self, user_uuid: str = None) -> dict:
+        """
+        Удаление данных пользователя по UUID
+        Вазвращает dict с информацией об удалении, НЕ UserResponse!
+        """
+        if user_uuid is None:
+            if not self.created_user_data or "uuid" not in self.created_user_data:
+                raise ValueError("UUID не указан и нет сохраненного пользователя")
+            user_uuid = self.created_user_data["uuid"]
+
+        print(f"\n=== DEBUG DELETE ===")
+        print(f"Deleting user with UUID: {user_uuid}")
+
+        url = self.endpoints.delete_user.format(user_uuid=user_uuid)
+        print(f"DELETE URL: {url}")
+
+        response = requests.delete(url=url, headers=self.headers.basic)
+
+        print(f"Response status: {response.status_code}")
+        print(f"=== END DEBUG ===\n")
+
+        # Для DELETE с 204 - создаем свой response для Allure
+        result_data = {
+            "status_code": response.status_code,
+            "message": "User deleted successfully",
+            "user_uuid": user_uuid,
+            "deleted_at": datetime.now().isoformat()
+        }
+
+        # Прикрепляем в Allure
+        allure.attach(
+            body=json.dumps(result_data, indent=4),
+            name=f"Status: {response.status_code}",
+            attachment_type=allure.attachment_type.JSON
+        )
+
+        # Дополнительно прикрепляем параметр user_uuid
+        allure.attach(str(user_uuid), name="user_uuid", attachment_type=allure.attachment_type.TEXT)
+
+        # Проверяем что DELETE успешен
+        assert response.status_code in [200, 204], \
+            f"Delete failed with status {response.status_code}: {response.text}"
+
+        # Возвращаем словарь, НЕ UserResponse!
+        return result_data
+    # @allure.step("delete user by UUID")
+    # def delete_user_by_uuid(self, user_uuid: str = None):
+    #     """
+    #     Удаление данных пользователя по UUID
+    #     """
+    #     if user_uuid is None:
+    #         if not self.created_user_data or "uuid" not in self.created_user_data:
+    #             raise ValueError("UUID не указан и нет сохраненного пользователя")
+    #         user_uuid = self.created_user_data["uuid"]
+    #
+    #     # URL должен быть для DELETE, а не для GET!
+    #     url = self.endpoints.delete_user.format(user_uuid=user_uuid)  # ← Другой endpoint!
+    #
+    #     # Должен быть DELETE запрос!
+    #     response = requests.delete(  # ← DELETE, а не GET!
+    #         url=url,
+    #         headers=self.headers.basic
+    #     )
+    #
+    #     # При удалении обычно приходит 204 No Content или 200 OK
+    #     # Проверяем успешный статус
+    #     if response.status_code in [200, 204]:
+    #         # Для 204 No Content - пустой ответ
+    #         if response.status_code == 204:
+    #             return {"status": "success", "message": "User deleted (204 No Content)"}
+    #         else:
+    #             # Если есть контент - валидируем
+    #             return self.validate_response(response, UserResponse, status_code=response.status_code)
+    #     else:
+    #         # Если ошибка - валидируем с ожидаемым статусом ошибки
+    #         return self.validate_response(response, UserResponse, status_code=response.status_code,
+    #                                       expected_success=False)
 
     def get_created_user_data(self):
         """
